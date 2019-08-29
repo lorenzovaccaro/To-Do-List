@@ -11,14 +11,14 @@ import UIKit
 class TodoListViewController: UITableViewController {
 
     //hard coded todo items for testing
-    let items = ["Get eggos", "Find Will", "Save Eleven"]
-    
+    var items = ["Get eggos", "Find Will", "Save Eleven"]
+
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
     }
     
-    //MARK:- Tableview Datasource Methods
+    //MARK: - Tableview Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return items.count
     }
@@ -29,7 +29,7 @@ class TodoListViewController: UITableViewController {
         return cell
     }
     
-    //MARK:- Tableview Delegate Methods
+    //MARK: - Tableview Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         print(items[indexPath.row])
         
@@ -45,6 +45,36 @@ class TodoListViewController: UITableViewController {
         
     }
     
+    //MARK: - Button Functionality
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        //setup
+        var textField : UITextField = UITextField()
+        
+        //prompt user to input new list item
+        let alert = UIAlertController(title: "Add to do list item", message: "", preferredStyle: .alert)
+        
+        //add add item button
+        let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
+            //add to list
+            self.items.append(textField.text!)
+            
+            //add to table view
+            self.tableView.reloadData()
+        }
+        
+        //add text field for user
+        alert.addTextField { (alertTextField) in
+            //set up text field
+            alertTextField.placeholder = "Create new item"
+            textField = alertTextField
+        }
+        
+        //add add item action
+        alert.addAction(action)
+        
+        //present alert
+        self.present(alert, animated: true, completion: nil)
+    }
     
     
 }

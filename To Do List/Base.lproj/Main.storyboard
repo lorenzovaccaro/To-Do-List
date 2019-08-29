@@ -32,7 +32,14 @@
                             <outlet property="delegate" destination="Aqu-8u-iBp" id="6wp-0u-lhv"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Todo List" id="Lvl-TA-8yg"/>
+                    <navigationItem key="navigationItem" title="Todo List" id="Lvl-TA-8yg">
+                        <barButtonItem key="rightBarButtonItem" systemItem="add" id="dxC-BE-e0b">
+                            <color key="tintColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <connections>
+                                <action selector="addButtonPressed:" destination="Aqu-8u-iBp" id="rGu-TF-KHz"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="ZyC-Kw-E08" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
