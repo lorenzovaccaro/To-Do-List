@@ -13,15 +13,19 @@ class TodoListViewController: UITableViewController {
     //hard coded todo items for testing
     var itemArray = [Item]()
     
-    let defaults = UserDefaults.standard
-
+    //let defaults = UserDefaults.standard
+    
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
-        if let items = defaults.array(forKey: "TodoListArray") as? [Item]{
-            itemArray = items
-        }
+        loadItems()
+        
+        //if let items = defaults.array(forKey: "TodoListArray") as? [Item]{
+        //    itemArray = items
+        //}
     }
     
     //MARK: - Tableview Datasource Methods
@@ -43,19 +47,16 @@ class TodoListViewController: UITableViewController {
     
     //MARK: - Tableview Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = itemArray[indexPath.row]
         //set done property to opposite of what it is
-        itemArray[indexPath.row].toggleDone()
+        item.toggleDone()
+        
+        tableView.cellForRow(at: indexPath)?.accessoryType = item.accessoryType()
+        
+        self.saveItems()
         
         //deselect item so that every item selected isn't grayed out
         tableView.deselectRow(at: indexPath, animated: true)
-        
-        //add/remove checkmark everytime you press item
-        if(tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark){
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        }else{
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-        }
-        
     }
     
     //MARK: - Button Functionality
@@ -75,7 +76,8 @@ class TodoListViewController: UITableViewController {
             self.itemArray.append(newItem)
             
             //save locally
-            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            //self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            self.saveItems()
             
             //add to table view
             self.tableView.reloadData()
@@ -93,6 +95,30 @@ class TodoListViewController: UITableViewController {
         
         //present alert
         self.present(alert, animated: true, completion: nil)
+    }
+    
+    //MARK: - Model Manipulation Methods
+    func saveItems(){
+        let encoder = PropertyListEncoder()
+        
+        do{
+            let data = try encoder.encode(self.itemArray)
+            try data.write(to: self.dataFilePath!)
+            
+        } catch{
+            print(error)
+        }
+    }
+    
+    func loadItems(){
+        if let data = try? Data(contentsOf: dataFilePath!){
+            let decoder = PropertyListDecoder()
+            do{
+                itemArray = try decoder.decode([Item].self, from: data)
+            } catch{
+                print(error)
+            }
+        }
     }
     
     
