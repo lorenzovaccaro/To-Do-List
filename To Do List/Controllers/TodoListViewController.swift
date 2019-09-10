@@ -7,25 +7,34 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
 
     //hard coded todo items for testing
     var itemArray = [Item]()
     
+    var selectedCategory : Category?{
+        didSet{
+            loadItems()
+        }
+    }
+    
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     //let defaults = UserDefaults.standard
     
     let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
         
+        //set controller to be the search bar delegate
+        searchBar.delegate = self
+        
+        //load data
         loadItems()
-        
-        //if let items = defaults.array(forKey: "TodoListArray") as? [Item]{
-        //    itemArray = items
-        //}
     }
     
     //MARK: - Tableview Datasource Methods
@@ -40,18 +49,31 @@ class TodoListViewController: UITableViewController {
         
         cell.textLabel?.text = item.title
         
-        cell.accessoryType = item.accessoryType()
+//        if(tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark){
+//            tableView.cellForRow(at: indexPath)?.accessoryType = .none
+//        }else{
+//            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+//        }
+//
+        cell.accessoryType = item.done ? .checkmark : .none
         
         return cell
     }
     
     //MARK: - Tableview Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let item = itemArray[indexPath.row]
-        //set done property to opposite of what it is
-        item.toggleDone()
         
-        tableView.cellForRow(at: indexPath)?.accessoryType = item.accessoryType()
+        let item = itemArray[indexPath.row]
+        
+        //set done property to opposite of what it is
+        item.done = !item.done
+        
+        //show the checkmark when select
+        if(tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark){
+            tableView.cellForRow(at: indexPath)?.accessoryType = .none
+        }else{
+            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+        }
         
         self.saveItems()
         
@@ -69,10 +91,14 @@ class TodoListViewController: UITableViewController {
         
         //add add item button
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
-            //add to list
-            let newItem = Item()
-            newItem.title = textField.text!
+            //create new item
+            let newItem = Item(context: self.context)
             
+            newItem.title = textField.text!
+            newItem.done = false
+            newItem.parentCategory = self.selectedCategory!
+            
+            //add to list
             self.itemArray.append(newItem)
             
             //save locally
@@ -99,28 +125,63 @@ class TodoListViewController: UITableViewController {
     
     //MARK: - Model Manipulation Methods
     func saveItems(){
-        let encoder = PropertyListEncoder()
+        do{
+            try self.context.save()
+        } catch{
+            print("Error saving context: \(error)")
+        }
+    }
+    
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil){
+        //need a predicate to load items in a certain category rather than load all of them
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        
+        //when searching you would like for that to work too, so you make a list of predicates
+        //optional binding for the predicate parameter
+        if let additionalPredicate = predicate{
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        }else{
+            request.predicate = categoryPredicate
+        }
+
         
         do{
-            let data = try encoder.encode(self.itemArray)
-            try data.write(to: self.dataFilePath!)
-            
+            itemArray = try context.fetch(request)
         } catch{
-            print(error)
+            print("Error loading data: \(error)")
         }
+        
+        tableView.reloadData()
+    }
+}
+
+extension TodoListViewController: UISearchBarDelegate{
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        //request.predicate = predicate
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        loadItems(with: request, predicate: predicate)
     }
     
-    func loadItems(){
-        if let data = try? Data(contentsOf: dataFilePath!){
-            let decoder = PropertyListDecoder()
-            do{
-                itemArray = try decoder.decode([Item].self, from: data)
-            } catch{
-                print(error)
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        //if there is no text (i.e. the text was cleared) reset it
+        if searchBar.text?.count == 0{
+            //reset list
+            loadItems()
+            
+            //stop blinking cursor in search bar and dismiss keyboard
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
             }
+            
+            
+            
         }
     }
-    
-    
 }
 
